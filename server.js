@@ -1,16 +1,19 @@
 // --- اصلاح کامل برای محیط Serverless Vercel ---
-const express = require('express');
-const { Pool } = require('pg');
-const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
+
+import express from 'express';
+import pkg from 'pg';
+const { Pool } = pkg;
+import fetch from 'node-fetch';
 
 const app = express();
 app.use(express.json());
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+  ssl: { rejectUnauthorized: false },
 });
 
+// --- Health Check Route ---
 app.get('/health', (_, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });
 });
@@ -24,9 +27,10 @@ app.post('/verify-transaction', async (req, res) => {
   try {
     await pool.query('INSERT INTO logs(action, details) VALUES($1,$2)', [
       'verify_transaction',
-      { transaction_id, amount },
+      JSON.stringify({ transaction_id, amount })
     ]);
 
+    // پیام ادمین (بررسی اولیه)
     const adminMsg = `📩 تراکنش جدید برای بررسی:\n💳 شناسه: ${transaction_id}\n💰 مبلغ: ${amount} تومان`;
     await fetch(`https://eitaayar.ir/api/${process.env.EITAAYAR_TOKEN}/sendMessage`, {
       method: 'POST',
@@ -38,6 +42,7 @@ app.post('/verify-transaction', async (req, res) => {
       }),
     });
 
+    // پیام عمومی (تأیید نهایی)
     if (amount <= 20000000) {
       const publicMsg = `✅ تراکنش تایید شد:\n💳 شناسه: ${transaction_id}\n💰 مبلغ: ${amount} تومان`;
       await fetch(`https://eitaayar.ir/api/${process.env.EITAAYAR_TOKEN}/sendMessage`, {
@@ -59,4 +64,4 @@ app.post('/verify-transaction', async (req, res) => {
 });
 
 // 🚫 نکته حیاتی برای Serverless:
-module.exports = app;
+export default app;
