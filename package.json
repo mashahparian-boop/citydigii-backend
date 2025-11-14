@@ -1,4 +1,5 @@
 {
+    "type": "module"
   "name": "citydigii-backend",
   "version": "1.0.0",
   "description": "CityDigii Backend API - Multi-platform Tech Store with WhatsApp & TikTok Integration",
