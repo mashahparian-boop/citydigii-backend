@@ -14,9 +14,11 @@ const pool = new Pool({
 });
 
 // --- Health Check Route ---
-app.get('/health', (_, res) => {
-  res.json({ status: 'ok', time: new Date().toISOString() });
+// --- مسیر ریشه برای تست (برای رفع خطای Cannot GET /) ---
+app.get('/', (_, res) => {
+  res.send('🚀 CityDigii backend (Eitaayar integration) is running successfully!');
 });
+
 
 // ---- بخش verify با Eitaayar ----
 app.post('/verify-transaction', async (req, res) => {
