@@ -1,5 +1,4 @@
 // --- اصلاح کامل برای محیط Serverless Vercel ---
-
 import express from 'express';
 import pkg from 'pg';
 const { Pool } = pkg;
@@ -8,17 +7,18 @@ import fetch from 'node-fetch';
 const app = express();
 app.use(express.json());
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+// 🧩 اضافه کردن مسیر favicon در همین بخش:
+app.get('/favicon.ico', (_, res) => res.status(204).end());
 
-// --- Health Check Route ---
-// --- مسیر ریشه برای تست (برای رفع خطای Cannot GET /) ---
+// --- مسیر ریشه برای تست ---
 app.get('/', (_, res) => {
   res.send('🚀 CityDigii backend (Eitaayar integration) is running successfully!');
 });
 
+// --- Health Check Route ---
+app.get('/health', (_, res) => {
+  res.json({ status: 'ok', time: new Date().toISOString() });
+});
 
 // ---- بخش verify با Eitaayar ----
 app.post('/verify-transaction', async (req, res) => {
