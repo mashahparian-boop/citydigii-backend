@@ -32,7 +32,8 @@
     "bcryptjs": "^2.4.3",
     "morgan": "^1.10.0",
     "rate-limiter-flexible": "^2.4.1",
-    "axios": "^1.6.0"
+    "axios": "^1.6.0",
+    "node-fetch": "^3.3.2"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
