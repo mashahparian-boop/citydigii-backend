@@ -1,7 +1,7 @@
 // --- اصلاح کامل برای محیط Serverless Vercel ---
 const express = require('express');
 const { Pool } = require('pg');
-const fetch = require('node-fetch');
+const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
 const app = express();
 app.use(express.json());
