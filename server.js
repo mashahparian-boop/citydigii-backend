@@ -1,4 +1,4 @@
-// server.js - CityDigii Backend API (Vercel Serverless Compatible)
+// CityDigii Backend API (Vercel Serverless + Eitaayar Integration)
 
 require('dotenv').config();
 const express = require('express');
@@ -6,8 +6,8 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const { Pool } = require('pg');
-const twilio = require('twilio');
 const { RateLimiterMemory } = require('rate-limiter-flexible');
+const fetch = require('node-fetch');
 
 const app = express();
 
@@ -17,10 +17,10 @@ app.use(cors());
 app.use(helmet());
 app.use(morgan('combined'));
 
-// Rate Limiter
+// Rate Limiter to avoid spam
 const rateLimiter = new RateLimiterMemory({
   points: 10,
-  duration: 1,
+  duration: 1, // 10 requests per second allowed per IP
 });
 app.use(async (req, res, next) => {
   try {
@@ -36,14 +36,6 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
-
-// Twilio Client
-const twilioClient = twilio(
-  process.env.TWILIO_SID,
-  process.env.TWILIO_AUTH_TOKEN
-);
-const BUSINESS_PHONE = '+989382965042';
-const ADMIN_PHONE = '+989122965042';
 
 // Initialize DB Tables
 (async function initDB() {
@@ -71,45 +63,56 @@ const ADMIN_PHONE = '+989122965042';
   }
 })();
 
-// Health Check
+// Health Check Endpoint
 app.get('/', (req, res) => {
   res.json({ ok: true, status: 'CityDigii Backend is running ✅' });
 });
 
-// Transaction Verification
+// ✅ Transaction Verification (using Eitaayar API)
 app.post('/verify-transaction', async (req, res) => {
   const { transaction_id, amount } = req.body;
-
   if (!transaction_id || !amount)
     return res.status(400).json({ error: 'Missing required fields' });
 
   try {
+    // Log action
     await pool.query(
       'INSERT INTO logs (action, details) VALUES ($1, $2)',
       ['verify_transaction', { transaction_id, amount }]
     );
 
+    // Condition for manual approval (e.g., higher amount)
     if (amount > 20000000) {
-      await twilioClient.messages.create({
-        body: `تأیید تراکنش: ID ${transaction_id} با مبلغ ${amount} تومان. تأیید؟ (بله/خیر)`,
-        from: BUSINESS_PHONE,
-        to: ADMIN_PHONE,
+      // Send message to admin via Eitaayar
+      const msgText = `🟢 تراکنش جدید برای تأیید:\n💳 شناسه: ${transaction_id}\n💰 مبلغ: ${amount} تومان\n📩 لطفاً بررسی و تأیید فرمایید.`;
+      const response = await fetch(`https://eitaayar.ir/api/${process.env.EITAAYAR_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: process.env.EITAAYAR_CHANNEL,
+          text: msgText,
+          title: 'تأیید تراکنش'
+        })
       });
+
+      const data = await response.json();
+      if (!data.ok) throw new Error('Eitaayar message failed.');
 
       await pool.query(
         'INSERT INTO verifications (transaction_id, amount) VALUES ($1, $2)',
         [transaction_id, amount]
       );
 
-      return res.json({ message: 'Transaction sent for admin approval' });
+      return res.json({ message: 'Message sent to Eitaayar admin for approval ✅' });
     }
 
-    return res.json({ message: 'Transaction approved automatically' });
+    // Otherwise approve automatically
+    return res.json({ message: 'Transaction approved automatically ✅' });
   } catch (err) {
     console.error('❌ Error verifying transaction:', err.message);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
-// ✅ Required for Vercel serverless
+// ✅ Required for Vercel serverless runtime
 module.exports = app;
