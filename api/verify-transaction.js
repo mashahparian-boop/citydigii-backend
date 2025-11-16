@@ -1,7 +1,9 @@
 import mysql from "mysql2/promise";
 
-export default async function handler(req, res) {
-  if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
+export default function handler(req, res) {
+  res.status(200).json({ message: "API working!" });
+}
+
 
   try {
     const connection = await mysql.createConnection({
