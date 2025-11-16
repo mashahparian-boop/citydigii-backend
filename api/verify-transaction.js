@@ -1,29 +1,22 @@
-   import mysql from 'mysql2/promise';
+import mysql from "mysql2/promise";
 
-export default function handler(req, res) {
-  if (req.method === 'POST') {
-    res.status(200).json({ message: 'Transaction verified and logged.' });
-  } else {
-    res.status(405).json({ error: 'Method not allowed' });
+export default async function handler(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
+
+  try {
+    const connection = await mysql.createConnection({
+      host: process.env.MYSQL_HOST || "195.226.223.11",
+      user: process.env.MYSQL_USER || "citydigi",
+      password: process.env.MYSQL_PASSWORD || "City@Digii2025",
+      database: process.env.MYSQL_DATABASE || "citydigi_db"
+    });
+
+    const [rows] = await connection.execute("SELECT 1 AS test");
+    await connection.end();
+
+    res.status(200).json({ ok: true, mysql: rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: err.message });
   }
 }
-
-     try {
-       const pool = mysql.createPool({
-         host: process.env.MYSQL_HOST,
-         user: process.env.MYSQL_USER,
-         password: process.env.MYSQL_PASSWORD,
-         database: process.env.MYSQL_DATABASE,
-       });
-
-       const { userId, amount, refId } = req.body;
-       await pool.query(
-         'INSERT INTO logs (action, details) VALUES (?, ?)',
-         ['transaction_verified', JSON.stringify({ userId, amount, refId })]
-       );
-
-       res.status(200).json({ ok: true, message: 'Transaction verified and logged.' });
-     } catch (error) {
-       res.status(500).json({ ok: false, error: error.message });
-     }
-   }
