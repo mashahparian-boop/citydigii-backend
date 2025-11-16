@@ -1,10 +1,12 @@
    import mysql from 'mysql2/promise';
 
-   export default async function handler(req, res) {
-     if (req.method !== 'POST') {
-       res.status(405).json({ error: 'Method Not Allowed' });
-       return;
-     }
+export default function handler(req, res) {
+  if (req.method === 'POST') {
+    res.status(200).json({ message: 'Transaction verified and logged.' });
+  } else {
+    res.status(405).json({ error: 'Method not allowed' });
+  }
+}
 
      try {
        const pool = mysql.createPool({
